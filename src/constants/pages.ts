@@ -1,8 +1,8 @@
 export const PAGES = {
   HOME: {
-    PATH: "/",
+    PATH: "/timer-prog",
   },
   TIMER: {
-    PATH: "/timer",
+    PATH: "/timer-prog/timer",
   },
 };
