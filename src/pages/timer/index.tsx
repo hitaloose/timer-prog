@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTimerStore } from "../../stores/timer";
 
 function formatToMinutesSeconds(seconds: number): string {
@@ -21,9 +21,37 @@ export const Timer = () => {
 
   const [finished, setFinished] = useState(false);
 
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const totalTimerIndex = useMemo(() => timers.length - 1, [timers.length]);
 
+  async function requestWakeLock() {
+    try {
+      if ("wakeLock" in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request("screen");
+        wakeLockRef.current.addEventListener("release", () => {
+          console.log("Wake Lock liberado");
+        });
+        console.log("Wake Lock ativado");
+      }
+    } catch (e) {
+      console.error("Erro ao ativar Wake Lock:", e);
+    }
+  }
+
+  async function releaseWakeLock() {
+    try {
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    } catch (e) {
+      console.error("Erro ao liberar Wake Lock:", e);
+    }
+  }
+
   useEffect(() => {
+    requestWakeLock();
+
     const intervalId = setInterval(() => {
       setCurrentTimer((prev) => {
         if (prev <= 0) {
@@ -34,6 +62,7 @@ export const Timer = () => {
             if (newIndex > totalTimerIndex) {
               clearInterval(intervalId);
               setFinished(true);
+              releaseWakeLock();
               return 0;
             }
 
@@ -48,6 +77,7 @@ export const Timer = () => {
 
     return () => {
       clearInterval(intervalId);
+      releaseWakeLock();
     };
   }, [totalTimerIndex]);
 
